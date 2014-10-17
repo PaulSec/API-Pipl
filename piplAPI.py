@@ -4,7 +4,8 @@ Using this code, you can manage to retrieve info on a specific person with his n
 
 """
 import requests
-from bs4 import BeautifulSoup
+import re
+import urllib
 
 
 class PiplAPI(object):
@@ -35,23 +36,14 @@ class PiplAPI(object):
             print '[verbose] %s' % s
 
     def get_info(self, name):
-        url = 'https://pipl.com/search/?q=+%s&l=&sloc=&in=5' % (name)
+        url = 'https://pipl.com/search/?q=%s&l=&sloc=&in=5' % (name)
         self.display_message(url)
         req = requests.get(url)
-        soup = BeautifulSoup(req.content)
-        res = {}
+        res = []
 
-        # collecting all profiles
-        for profile in soup.findAll('div', attrs={'class': 'full_person profiles'}):
-            profile_link = profile.find('div', attrs={'class': 'url'}).text.replace(' ', '').replace('\n', '')
-            platform_name = profile.find('div', attrs={'class': 'from'}).text.replace(' ', '').replace('\n', '').split('-')[1]
-            if platform_name not in res:
-                res[platform_name] = []
-            res[platform_name].append(profile_link)
-
-        # displaying all profiles we gathered
-        for platform_name in res:
-            self.display_message('On %s:' % (platform_name))
-            for profile in res[platform_name]:
-                self.display_message('\t%s' % (profile))
+        results = re.findall(r"U=(http[a-zA-Z0-9%!/.?!]+)&P=", req.content)
+        for result in results:
+            url = urllib.unquote(result).decode('utf8')
+            res.append(url)
+            self.display_message('Profile found: %s' % (url))
         return res
